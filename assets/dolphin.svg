@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" width="100%" height="100%">
+  <defs>
+    <linearGradient id="dolphinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00b4d8" />
+      <stop offset="60%" stop-color="#0077b6" />
+      <stop offset="100%" stop-color="#023e8a" />
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#005f73" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- Leaping Dolphin Body -->
+  <path d="M 190,110 C 180,85 155,45 110,25 C 75,10 35,20 10,65 C 25,60 45,55 65,58 C 55,50 40,48 30,50 C 60,30 105,32 135,50 C 160,65 175,85 180,105 Z" fill="url(#dolphinGrad)" filter="url(#softGlow)" />
+  <path d="M 115,25 C 120,5 130,0 135,0 C 132,12 128,20 125,28 Z" fill="#0096c7" />
+  <path d="M 68,58 C 72,68 80,78 90,82 C 86,75 80,68 76,60 Z" fill="#0077b6" />
+  <path d="M 180,105 C 190,108 198,118 200,120 C 192,118 185,112 180,110 C 176,114 170,118 165,120 C 170,115 176,109 180,105 Z" fill="#0077b6" />
+  <!-- Underbelly accent -->
+  <path d="M 35,63 C 55,56 85,58 115,70 C 140,80 160,95 170,108 C 158,95 135,80 105,70 C 75,60 50,60 35,63 Z" fill="#90e0ef" opacity="0.8" />
+  <!-- Eye -->
+  <circle cx="32" cy="48" r="2.5" fill="#03045e" />
+  <circle cx="31.5" cy="47.5" r="0.8" fill="#ffffff" />
+</svg>

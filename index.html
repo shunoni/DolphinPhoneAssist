@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dolphin Remote">
+  <meta name="theme-color" content="#eef0f4">
+  <title>Dolphin Wiimote Controller</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- MQTT for zero-config public WiFi pairing + WebRTC Signaling -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+  <!-- Permission / Sensor Activation Overlay (iOS requirement) -->
+  <div id="permission-overlay" class="overlay">
+    <div class="overlay-card">
+      <div class="overlay-icon">
+        <img src="assets/dolphin.svg" alt="Dolphin Logo" width="90">
+      </div>
+      <h2>Dolphin Wiimote</h2>
+      <p>Tap below to enable motion sensors (Gyro & Accelerometer) and connect to your Linux host.</p>
+      <button id="btn-activate" class="btn-primary">Enable & Connect</button>
+      <p class="overlay-tip">Tip: Tap <strong>Share &gt; Add to Home Screen</strong> for the full native controller experience!</p>
+    </div>
+  </div>
+
+  <!-- Settings / Connection Modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Connection Settings</h3>
+        <button id="btn-close-settings" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-host-ip">Direct Host IP (optional):</label>
+          <input type="text" id="input-host-ip" placeholder="e.g. 192.168.1.50">
+        </div>
+        <div class="form-group">
+          <label for="input-room-pin">Pairing PIN (4 digits):</label>
+          <input type="number" id="input-room-pin" placeholder="e.g. 4821">
+        </div>
+        <div class="form-group toggle-group">
+          <label for="toggle-b-button">Show B (Trigger) Button:</label>
+          <input type="checkbox" id="toggle-b-button" checked>
+        </div>
+        <div class="form-group toggle-group">
+          <label for="toggle-haptics">Haptic Feedback (Vibration):</label>
+          <input type="checkbox" id="toggle-haptics" checked>
+        </div>
+        <button id="btn-save-settings" class="btn-primary">Save & Reconnect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Controller Viewport -->
+  <main class="wiimote-container" id="wiimote">
+    <!-- Top Bar: Recenter, Status Pill, Dolphin Logo -->
+    <header class="top-bar">
+      <!-- Recenter Button -->
+      <div class="recenter-wrapper">
+        <button class="btn-recenter" id="btn-recenter" aria-label="Recenter Gyroscope">
+          <div class="target-icon-box">
+            <img src="assets/target.svg" alt="Recenter Target" class="icon-target">
+          </div>
+        </button>
+        <span class="label-recenter">RECENTER</span>
+      </div>
+
+      <!-- Status Pill -->
+      <div class="status-pill" id="status-pill" title="Tap for connection settings">
+        <span class="status-dot searching" id="status-dot"></span>
+        <span class="status-text" id="status-text">Searching...</span>
+      </div>
+
+      <!-- Dolphin Logo & Settings Trigger -->
+      <div class="dolphin-logo-wrapper" id="dolphin-btn">
+        <img src="assets/dolphin.svg" alt="Dolphin Emulator Logo" class="icon-dolphin">
+      </div>
+    </header>
+
+    <!-- Discreet B Trigger Bar (Top Edge / Wiimote Underside Trigger) -->
+    <div class="b-trigger-bar" id="b-trigger-container">
+      <button class="btn-b-trigger" id="btn-b" data-key="b">
+        <span>B (TRIGGER)</span>
+      </button>
+    </div>
+
+    <!-- D-Pad Section -->
+    <section class="section-dpad">
+      <div class="dpad" id="dpad">
+        <button class="dpad-btn dpad-up" id="btn-dpad-up" data-key="up" aria-label="D-Pad Up">
+          <svg viewBox="0 0 40 40" class="dpad-arrow">
+            <polygon points="20,8 32,28 8,28" fill="#757575" />
+          </svg>
+        </button>
+        <button class="dpad-btn dpad-left" id="btn-dpad-left" data-key="left" aria-label="D-Pad Left">
+          <svg viewBox="0 0 40 40" class="dpad-arrow">
+            <polygon points="8,20 28,8 28,32" fill="#757575" />
+          </svg>
+        </button>
+        <div class="dpad-center" id="dpad-center"></div>
+        <button class="dpad-btn dpad-right" id="btn-dpad-right" data-key="right" aria-label="D-Pad Right">
+          <svg viewBox="0 0 40 40" class="dpad-arrow">
+            <polygon points="32,20 12,8 12,32" fill="#757575" />
+          </svg>
+        </button>
+        <button class="dpad-btn dpad-down" id="btn-dpad-down" data-key="down" aria-label="D-Pad Down">
+          <svg viewBox="0 0 40 40" class="dpad-arrow">
+            <polygon points="20,32 8,12 32,12" fill="#757575" />
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Large A Button Section -->
+    <section class="section-a">
+      <button class="btn-a" id="btn-a" data-key="a" aria-label="A Button">
+        <span class="btn-a-text">A</span>
+      </button>
+    </section>
+
+    <!-- Minus, Home, Plus Section -->
+    <section class="section-middle-row">
+      <!-- Minus Button -->
+      <button class="btn-round btn-minus" id="btn-minus" data-key="minus" aria-label="Minus Button">
+        <span class="symbol-minus">&minus;</span>
+      </button>
+
+      <!-- Home Button -->
+      <button class="btn-round btn-home" id="btn-home" data-key="home" aria-label="Home Button">
+        <div class="home-icon-box">
+          <img src="assets/home.svg" alt="Home" class="icon-home">
+        </div>
+      </button>
+
+      <!-- Plus Button -->
+      <button class="btn-round btn-plus" id="btn-plus" data-key="plus" aria-label="Plus Button">
+        <span class="symbol-plus">&plus;</span>
+      </button>
+    </section>
+
+    <!-- 1 & 2 Buttons Vertical Stack -->
+    <section class="section-bottom-stack">
+      <!-- 1 Button -->
+      <button class="btn-round-large btn-number" id="btn-one" data-key="one" aria-label="1 Button">
+        <span class="btn-num-text">1</span>
+      </button>
+
+      <!-- 2 Button -->
+      <button class="btn-round-large btn-number" id="btn-two" data-key="two" aria-label="2 Button">
+        <span class="btn-num-text">2</span>
+      </button>
+    </section>
+
+    <!-- Recenter notification badge -->
+    <div id="recenter-toast" class="recenter-toast hidden">Gyro Recentered</div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
